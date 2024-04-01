@@ -1,7 +1,6 @@
 from django.core import paginator
 from alumni.models import AlumniEventPage
 import datetime
-import pytz
 from django import forms
 from django.contrib.auth.models import AbstractUser
 from django.core.paginator import Paginator
@@ -9,13 +8,21 @@ from django.db import models
 from django.shortcuts import render
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-
+from django.conf import settings
+import csv
+from io import StringIO
+import requests
+import os
+import re
+from django.core.exceptions import ValidationError
 ######################################################
 # for tagging
 from modelcluster.contrib.taggit import ClusterTaggableManager
 from modelcluster.fields import ParentalKey, ParentalManyToManyField
 from taggit.models import TaggedItemBase
 from wagtail.admin.edit_handlers import FieldRowPanel, FieldPanel, InlinePanel, MultiFieldPanel, TabbedInterface, ObjectList, PageChooserPanel
+from wagtail.images.models import Image
+from django.core.files import File
 
 # , StreamFieldPanel
 from wagtail.core.fields import RichTextField
@@ -26,7 +33,7 @@ from wagtail.core.fields import RichTextField
 # from wagtail.documents.blocks import DocumentChooserBlock
 from wagtail.core.models import Page, Orderable
 from wagtail.documents.edit_handlers import DocumentChooserPanel
-
+# from wagtail.core.fields import CSVField
 ######################################################
 from wagtail.images.edit_handlers import ImageChooserPanel
 
@@ -2408,6 +2415,7 @@ class StudentBatch(Page):
     )
     table_view = models.BooleanField(default=False)
     alumni_batch = models.BooleanField(default=False, verbose_name="Move to Alumni Corner")
+    csv_file = models.FileField(upload_to='csv_files/', null=True, blank=True)  
     content_panels = Page.content_panels + [
         FieldPanel("enrollment_year"),
         FieldPanel("graduation_year"),
@@ -2418,7 +2426,10 @@ class StudentBatch(Page):
             ],
             heading="Alumni corner details",
         ),
+        FieldPanel("csv_file"), 
     ]
+
+
     parent_page_types = [
         "Students",
     ]
@@ -2427,6 +2438,103 @@ class StudentBatch(Page):
     def get_children_order_by_title(self):
         children = super().get_children().order_by("title")
         return children
+
+
+    def save(self, *args, **kwargs):
+
+        try:
+            if self.csv_file:
+                # Check if the uploaded file is a CSV file
+                if not self.csv_file.name.endswith('.csv'):
+                    raise ValidationError("The uploaded file is not a CSV file.")
+                    
+
+                csv_data = self.csv_file.read().decode('utf-8')
+
+                # If no matching CSV file found, proceed with processing the new file
+                csv_file = StringIO(csv_data)
+                csv_reader = csv.DictReader(csv_file)
+
+                image_dir = os.path.join(settings.MEDIA_ROOT, 'student_images', str(self.enrollment_year))
+                os.makedirs(image_dir, exist_ok=True)
+                for row in csv_reader:
+                    roll_no = row["Roll No"]
+                    image_url = row['photo'] if row['photo'] else None
+                    pattern = r'id=([a-zA-Z0-9_-]+)'
+                    match = re.search(pattern, image_url)
+                    file_id = match.group(1)
+                    download_url = f"https://drive.google.com/uc?id={file_id}"
+                    if image_url:
+                        try:
+                            image_filename = f"{roll_no}.jpg" 
+                            image_path = os.path.join(image_dir, image_filename)
+                            response = requests.get(download_url)
+                            with open(image_path, 'wb') as f:
+                                f.write(response.content)
+
+                            with open(image_path, 'rb') as f:
+                                wagtail_image = Image.objects.create(
+                                    title=roll_no,  
+                                    file=File(f, name=os.path.basename(image_path))
+                                )
+                        except Exception as e:
+                            print(f"Failed to download image from URL {download_url}: {e}")
+                            continue                     
+
+                    is_duplicate=False
+                   
+                    for child in self.get_children():
+                        if str(child.specific.roll_no) == row['Roll No']:
+                            is_duplicate=True
+                            child.specific.title = row['Full Name']
+                            child.specific.webmail = row['IITG Email Id']
+                            child.specific.first_name = row['First Name'] if row["First Name"] else None
+                            child.specific.middle_name = row['Middle Name'] if row["Middle Name"] else None
+                            child.specific.last_name = row['Last Name'] if row['Last Name'] else None
+                            child.specific.email_id = row['Personal mail Id'] if row["Personal mail Id"] else None
+                            child.specific.roll_no = row['Roll No'] if row['Roll No'] else None
+                            # child.specific.enrollment_year = row['Enrollment Year'] if row["Enrollment Year"] else None
+                            # child.specific.leaving_year = row['Leaving Year'] if row["Leaving Year"] else None
+                            # child.specific.is_exchange = row['Is Exchange'] if row['Is Exchange'] else False
+                            # child.specific.supervisor = row['supervisor'] if row['supervisor'] else None
+                            # child.specific.co_supervisor = row['Co Supervisor'] if row['Co Supervisor'] else None
+                            # child.specific.thesis_title = row['Thesis Title'] if row['Thesis Title'] else None
+                            child.specific.contact_number = row['Contact Number'] if row["Contact Number"] else None
+                            child.specific.hostel_address = row['Hostel'] if row["Hostel"] else None
+                            # child.specific.intro = row['intro'] if row['intro'] else None
+                            child.specific.linkedin = row['linkedin'] if row['linkedin'] else None
+                            child.specific.website = row['website'] if row['website'] else None
+                            # child.specific.body = row['body'] if row['body'] else None
+                            child.specific.photo = wagtail_image if image_url else None
+                            child.specific.save()
+                            break
+                    if not is_duplicate:            
+                        student = Student(
+                            title=row['Full Name'],         #Data from google form
+                            webmail=row['IITG Email Id'],         #Data from google form
+                            first_name=row['First Name'] if row ["First Name"] else None,        #Data from google form
+                            middle_name=row['Middle Name'] if row["Middle Name"] else None,        #Data from google form
+                            last_name=row['Last Name'] if row['Last Name'] else None,        #Data from google form
+                            email_id=row['Personal mail Id'] if row["Personal mail Id"] else None,   #Data from google form
+                            roll_no=row['Roll No'] if row['Roll No'] else None,   #Data from google form
+                            # enrollment_year=row['Enrollment Year'] if row["Enrollment Year"] else None,   #Data from google form
+                            # leaving_year=row['Leaving Year'] if row["Leaving Year"] else None,   #Data from google form
+                            # is_exchange=row['Is Exchange'] if row['Is Exchange'] else False,   #Data from google form
+                            # supervisor=row['supervisor'] if row['supervisor'] else None,   #Data from google form
+                            # co_supervisor=row['Co Supervisor'] if row['Co Supervisor'] else None,   #Data from google form
+                            # thesis_title=row['Thesis Title'] if row['Thesis Title'] else None,   #Data from google form
+                            contact_number=row['Contact Number'] if row["Contact Number"] else None,   #Data from google form
+                            hostel_address=row['Hostel'] if row["Hostel"] else None,   #Data from google form
+                            linkedin=row['linkedin'] if row['linkedin'] else None,   #Data from google form
+                            website=row['website'] if row['website'] else None,   #Data from google form
+                            photo=wagtail_image if image_url else None   #Data from google form
+                        )
+                        self.add_child(instance=student)
+        except Exception as e:
+            raise ValidationError(f"An error occurred while processing the CSV file: {str(e)}")
+
+        # Call the superclass method to save the page
+        return super(StudentBatch, self).save(*args, **kwargs)
 
     def get_program(self):
         node = self.get_parent()
@@ -2440,12 +2548,11 @@ class StudentBatch(Page):
 
 
 class Student(Page):
-    # user = models.ForeignKey(AUTH_USER_MODEL, related_name='student_profile', null=True, on_delete=models.SET_NULL,blank=True,verbose_name="User(only if the user exists)")
     webmail = models.EmailField(blank=True, null=True)
-    first_name = models.CharField(max_length=50)
-    middle_name = models.CharField(max_length=50, blank=True)
-    last_name = models.CharField(max_length=50, blank=True)
-    email_id = models.EmailField(blank=True, verbose_name="Personal Email ID")
+    first_name = models.CharField(max_length=50,null=True)
+    middle_name = models.CharField(max_length=50, blank=True, null=True)
+    last_name = models.CharField(max_length=50, blank=True,null=True)
+    email_id = models.EmailField(blank=True, verbose_name="Personal Email ID",null=True)
     roll_no = models.IntegerField(blank=True, null=True)
     enrollment_year = models.DateField(blank=True, null=True)
     leaving_year = models.DateField(blank=True, null=True)
@@ -2467,8 +2574,8 @@ class Student(Page):
         related_name="co_supervisor",
     )
     thesis_title = models.CharField(max_length=500, blank=True, null=True)
-    contact_number = models.CharField(max_length=30, blank=True)
-    hostel_address = models.CharField(max_length=264, blank=True)
+    contact_number = models.CharField(max_length=30, blank=True,null=True)
+    hostel_address = models.CharField(max_length=264, blank=True,null=True)
     photo = models.ForeignKey(
         "wagtailimages.Image",
         null=True,
@@ -2476,10 +2583,10 @@ class Student(Page):
         on_delete=models.SET_NULL,
         related_name="+",
     )
-    intro = models.CharField(max_length=250, blank=True)
-    body = RichTextField(blank=True, features=CUSTOM_RICHTEXT)
-    website = models.URLField(blank=True)
-    linkedin = models.URLField(blank=True)
+    intro = models.CharField(max_length=250, blank=True,null=True)
+    body = RichTextField(blank=True, features=CUSTOM_RICHTEXT, null=True)
+    website = models.URLField(blank=True,null=True)
+    linkedin = models.URLField(blank=True,null=True)
 
     parent_page_types = ["Students", "StudentBatch"]
     subpage_types = []
@@ -2520,9 +2627,9 @@ class Student(Page):
 
     def __str__(self):
         name = self.first_name
-        if len(self.middle_name):
+        if self.middle_name and len(self.middle_name):
             name += " " + self.middle_name
-        if len(self.last_name):
+        if self.last_name and len(self.last_name):
             name += " " + self.last_name
         return name
 
