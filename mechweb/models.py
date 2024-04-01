@@ -115,6 +115,8 @@ def current_year():
 def max_value_current_year(value):
     return MaxValueValidator(current_year() + 1)(value)
 
+def max_value_current_year_graduation(value):
+    return MaxValueValidator(current_year() + 5)(value)
 
 class CustomUser(AbstractUser):
     username = models.CharField(
@@ -2411,7 +2413,7 @@ class StudentBatch(Page):
     graduation_year = models.IntegerField(
         null=True,
         blank=True,
-        validators=[MinValueValidator(1994), max_value_current_year],
+        validators=[MinValueValidator(1994), max_value_current_year_graduation],
     )
     table_view = models.BooleanField(default=False)
     alumni_batch = models.BooleanField(default=False, verbose_name="Move to Alumni Corner")
