@@ -2460,14 +2460,14 @@ class StudentBatch(Page):
                 image_dir = os.path.join(settings.MEDIA_ROOT, 'student_images', str(self.enrollment_year))
                 os.makedirs(image_dir, exist_ok=True)
                 for row in csv_reader:
-                    roll_no = row["Roll No"]
-                    image_url = row['photo'] if row['photo'] else None
-                    pattern = r'id=([a-zA-Z0-9_-]+)'
-                    match = re.search(pattern, image_url)
-                    file_id = match.group(1)
-                    download_url = f"https://drive.google.com/uc?id={file_id}"
-                    if image_url:
-                        try:
+                    try:
+                        roll_no = row["Roll No"]
+                        image_url = row['photo'] if row['photo'] else None
+                        pattern = r'id=([a-zA-Z0-9_-]+)'
+                        match = re.search(pattern, image_url)
+                        file_id = match.group(1)
+                        download_url = f"https://drive.google.com/uc?id={file_id}"
+                        if image_url:
                             image_filename = f"{roll_no}.jpg" 
                             image_path = os.path.join(image_dir, image_filename)
                             response = requests.get(download_url)
@@ -2479,59 +2479,61 @@ class StudentBatch(Page):
                                     title=roll_no,  
                                     file=File(f, name=os.path.basename(image_path))
                                 )
-                        except Exception as e:
-                            print(f"Failed to download image from URL {download_url}: {e}")
+                                  
+
+                        is_duplicate=False
+                   
+                        for child in self.get_children():
+                            if str(child.specific.roll_no) == row['Roll No']:
+                                is_duplicate=True
+                                child.specific.title = row['Full Name']
+                                child.specific.webmail = row['IITG Email Id']
+                                child.specific.first_name = row['First Name'] if row["First Name"] else None
+                                child.specific.middle_name = row['Middle Name'] if row["Middle Name"] else None
+                                child.specific.last_name = row['Last Name'] if row['Last Name'] else None
+                                child.specific.email_id = row['Personal mail Id'] if row["Personal mail Id"] else None
+                                child.specific.roll_no = row['Roll No'] if row['Roll No'] else None
+                                # child.specific.enrollment_year = row['Enrollment Year'] if row["Enrollment Year"] else None
+                                # child.specific.leaving_year = row['Leaving Year'] if row["Leaving Year"] else None
+                                # child.specific.is_exchange = row['Is Exchange'] if row['Is Exchange'] else False
+                                # child.specific.supervisor = row['supervisor'] if row['supervisor'] else None
+                                # child.specific.co_supervisor = row['Co Supervisor'] if row['Co Supervisor'] else None
+                                # child.specific.thesis_title = row['Thesis Title'] if row['Thesis Title'] else None
+                                child.specific.contact_number = row['Contact Number'] if row["Contact Number"] else None
+                                child.specific.hostel_address = row['Hostel'] if row["Hostel"] else None
+                                # child.specific.intro = row['intro'] if row['intro'] else None
+                                child.specific.linkedin = row['linkedin'] if row['linkedin'] else None
+                                child.specific.website = row['website'] if row['website'] else None
+                                # child.specific.body = row['body'] if row['body'] else None
+                                child.specific.photo = wagtail_image if image_url else None
+                                child.specific.save()
+                                break
+                        if not is_duplicate:            
+                            student = Student(
+                                title=row['Full Name'],         #Data from google form
+                                webmail=row['IITG Email Id'],         #Data from google form
+                                first_name=row['First Name'] if row ["First Name"] else None,        #Data from google form
+                                middle_name=row['Middle Name'] if row["Middle Name"] else None,        #Data from google form
+                                last_name=row['Last Name'] if row['Last Name'] else None,        #Data from google form
+                                email_id=row['Personal mail Id'] if row["Personal mail Id"] else None,   #Data from google form
+                                roll_no=row['Roll No'] if row['Roll No'] else None,   #Data from google form
+                                # enrollment_year=row['Enrollment Year'] if row["Enrollment Year"] else None,   #Data from google form
+                                # leaving_year=row['Leaving Year'] if row["Leaving Year"] else None,   #Data from google form
+                                # is_exchange=row['Is Exchange'] if row['Is Exchange'] else False,   #Data from google form
+                                # supervisor=row['supervisor'] if row['supervisor'] else None,   #Data from google form
+                                # co_supervisor=row['Co Supervisor'] if row['Co Supervisor'] else None,   #Data from google form
+                                # thesis_title=row['Thesis Title'] if row['Thesis Title'] else None,   #Data from google form
+                                contact_number=row['Contact Number'] if row["Contact Number"] else None,   #Data from google form
+                                hostel_address=row['Hostel'] if row["Hostel"] else None,   #Data from google form
+                                linkedin=row['linkedin'] if row['linkedin'] else None,   #Data from google form
+                                website=row['website'] if row['website'] else None,   #Data from google form
+                                photo=wagtail_image if image_url else None   #Data from google form
+                            )
+                            self.add_child(instance=student)
+                    except Exception as e:
+                            print(f"Failed to add row data: {e}")
                             continue                     
 
-                    is_duplicate=False
-                   
-                    for child in self.get_children():
-                        if str(child.specific.roll_no) == row['Roll No']:
-                            is_duplicate=True
-                            child.specific.title = row['Full Name']
-                            child.specific.webmail = row['IITG Email Id']
-                            child.specific.first_name = row['First Name'] if row["First Name"] else None
-                            child.specific.middle_name = row['Middle Name'] if row["Middle Name"] else None
-                            child.specific.last_name = row['Last Name'] if row['Last Name'] else None
-                            child.specific.email_id = row['Personal mail Id'] if row["Personal mail Id"] else None
-                            child.specific.roll_no = row['Roll No'] if row['Roll No'] else None
-                            # child.specific.enrollment_year = row['Enrollment Year'] if row["Enrollment Year"] else None
-                            # child.specific.leaving_year = row['Leaving Year'] if row["Leaving Year"] else None
-                            # child.specific.is_exchange = row['Is Exchange'] if row['Is Exchange'] else False
-                            # child.specific.supervisor = row['supervisor'] if row['supervisor'] else None
-                            # child.specific.co_supervisor = row['Co Supervisor'] if row['Co Supervisor'] else None
-                            # child.specific.thesis_title = row['Thesis Title'] if row['Thesis Title'] else None
-                            child.specific.contact_number = row['Contact Number'] if row["Contact Number"] else None
-                            child.specific.hostel_address = row['Hostel'] if row["Hostel"] else None
-                            # child.specific.intro = row['intro'] if row['intro'] else None
-                            child.specific.linkedin = row['linkedin'] if row['linkedin'] else None
-                            child.specific.website = row['website'] if row['website'] else None
-                            # child.specific.body = row['body'] if row['body'] else None
-                            child.specific.photo = wagtail_image if image_url else None
-                            child.specific.save()
-                            break
-                    if not is_duplicate:            
-                        student = Student(
-                            title=row['Full Name'],         #Data from google form
-                            webmail=row['IITG Email Id'],         #Data from google form
-                            first_name=row['First Name'] if row ["First Name"] else None,        #Data from google form
-                            middle_name=row['Middle Name'] if row["Middle Name"] else None,        #Data from google form
-                            last_name=row['Last Name'] if row['Last Name'] else None,        #Data from google form
-                            email_id=row['Personal mail Id'] if row["Personal mail Id"] else None,   #Data from google form
-                            roll_no=row['Roll No'] if row['Roll No'] else None,   #Data from google form
-                            # enrollment_year=row['Enrollment Year'] if row["Enrollment Year"] else None,   #Data from google form
-                            # leaving_year=row['Leaving Year'] if row["Leaving Year"] else None,   #Data from google form
-                            # is_exchange=row['Is Exchange'] if row['Is Exchange'] else False,   #Data from google form
-                            # supervisor=row['supervisor'] if row['supervisor'] else None,   #Data from google form
-                            # co_supervisor=row['Co Supervisor'] if row['Co Supervisor'] else None,   #Data from google form
-                            # thesis_title=row['Thesis Title'] if row['Thesis Title'] else None,   #Data from google form
-                            contact_number=row['Contact Number'] if row["Contact Number"] else None,   #Data from google form
-                            hostel_address=row['Hostel'] if row["Hostel"] else None,   #Data from google form
-                            linkedin=row['linkedin'] if row['linkedin'] else None,   #Data from google form
-                            website=row['website'] if row['website'] else None,   #Data from google form
-                            photo=wagtail_image if image_url else None   #Data from google form
-                        )
-                        self.add_child(instance=student)
         except Exception as e:
             raise ValidationError(f"An error occurred while processing the CSV file: {str(e)}")
 
