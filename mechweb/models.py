@@ -1947,25 +1947,27 @@ class PublicationPage(Page):
         related_name="+",
     )
     name = models.CharField(max_length=500)
-    abstract = RichTextField(blank=True, features=CUSTOM_RICHTEXT)
-    pub_type = models.CharField(max_length=2, choices=PUBLICATION_TYPES, default="0")
-    download_link = models.URLField(blank=True, max_length=100)
+    abstract = RichTextField(blank=True, null=True, features=CUSTOM_RICHTEXT)
+    pub_type = models.CharField(max_length=2, choices=PUBLICATION_TYPES, default="0", null=True)
+    download_link = models.URLField(blank=True, max_length=100, null=True)
     pub_issue = models.CharField(max_length=100, null=True, blank=True)
-    pub_year = models.DateField(default=timezone.now)
-    pub_journal = models.CharField(max_length=300, blank=True)
-    pub_vol = models.CharField(max_length=200, blank=True)
-    page_start = models.CharField(max_length=50, blank=True)
-    page_end = models.CharField(max_length=50, blank=True)
-    citations = models.CharField(max_length=10, blank=True)
+    pub_year = models.IntegerField(default=timezone.now().year, null=True)
+    pub_journal = models.CharField(max_length=300, blank=True, null=True)
+    pub_vol = models.CharField(max_length=200, blank=True, null=True)
+    page_start = models.CharField(max_length=50, blank=True, null=True)
+    page_end = models.CharField(max_length=50, blank=True, null=True)
+    citations = models.CharField(max_length=10, blank=True, null=True)
     alt_detail_text = models.CharField(
         max_length=1000,
         blank=True,
         help_text="Add any other type of data, like ISBN number, publisher etc",
+        null=True
     )
     alt_people_text = models.CharField(
         max_length=1000,
         blank=True,
         help_text="Add the exact sequence of names as in the publication",
+        null=True
     )
     # pub_conference =
     # pub_patent_number =
@@ -2068,7 +2070,7 @@ class PublicationPageFaculty(Orderable):
         on_delete=models.SET_NULL,
         related_name="faculty_pub",
     )
-    research_statement = RichTextField(blank=True, features=CUSTOM_RICHTEXT)
+    research_statement = RichTextField(blank=True, features=CUSTOM_RICHTEXT,null=True)
     panels = [
         AutocompletePanel("faculty", target_model="mechweb.FacultyPage"),
         FieldPanel("research_statement"),

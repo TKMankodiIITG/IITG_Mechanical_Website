@@ -46,6 +46,16 @@
 .studlist{
     list-style: circle !important;
 }
+.more-button{
+    color: #61a5c2;
+    font-size: 1.875rem2rem;
+    font-weight: 800;
+    text-decoration: none;
+    text-align: right;
+    padding: 0.5rem;
+    padding-right: 2rem;
+    padding-bottom: 1.2rem;
+}
 </style>
 
 {% endblock extra_css %}
@@ -220,13 +230,15 @@
                         <li class="faclist">
                             <h5 class=""><a href="{{ pub.url }}">{{ pub }}</a></h5>
                         </li>
-
                         <hr>
                     </div>
                     {% endif %}
                     {% endfor %}
                 </ol>
-
+                
+                {% if page.specific.google_scholar_profile_link%}
+                <a class="more-button" href="{{page.specific.google_scholar_profile_link}}" target="blank"> more>> </a>
+                {% endif %}
                 {% endif %}
 
 
