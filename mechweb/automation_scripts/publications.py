@@ -9,6 +9,7 @@ from django.utils.text import slugify
 import json
 import csv
 import time
+import datetime
 def updateGoogleScholarLinks():
     try:
         csv_file_path = 'mechweb/automation_scripts/Data for the nW/GoogleScholarLinks.csv'
@@ -46,16 +47,33 @@ def checkGoogleScholarProfile():
         
         
         
-def checkProfessorId():
+def checking_currect_professors():
     print("Professor name,Professor Email,Google Scholar Profile")
     try: 
         all_faculty_data = FacultyPage.objects.all()
-        for faculty_data in all_faculty_data:
-            if faculty_data.google_scholar_profile_link:
-                print(f"{faculty_data},{faculty_data.id}")
-            else:
-                print(f"{faculty_data},{faculty_data.email_id}, No Google Scholar Profile")
-
+        current_faculty_list = []
+        today = datetime.date.today() 
+        for fac in all_faculty_data:
+            try:
+                if fac.leaving_date and today < fac.leaving_date:
+                    current_faculty_list.append(fac)
+                if not fac.leaving_date:
+                    current_faculty_list.append(fac)
+                if fac.on_visit:
+                    current_faculty_list.remove(fac)
+            except Exception as error:
+                print(f"error: {error}")
+        count=0
+        for faculty_data in current_faculty_list:
+            print(f"{faculty_data}: lien-{faculty_data.on_lien} visit-{faculty_data.on_visit} depute-{faculty_data.on_depute}")
+            count+=1
+            # print(f"leaving year-{faculty_data.leaving_date}")
+            print(f"{faculty_data.leaving_date} current time-{today}")
+            # if faculty_data.google_scholar_profile_link:
+            #     print(f"{faculty_data},{faculty_data.id}")
+            # else:
+            #     print(f"{faculty_data},{faculty_data.email_id}, No Google Scholar Profile")
+        print(f"total faculty count---------------------------------{count}")
     except Exception as e:
         # Handle other exceptions
         print(f"Error: {e}")
@@ -65,8 +83,21 @@ def checkProfessorId():
 def updateGoogleScholarPublications():
     try: 
         all_faculty_data = FacultyPage.objects.all()
-        for faculty_data in all_faculty_data:
-            if faculty_data.google_scholar_profile_link and not PublicationPageFaculty.objects.filter(faculty_id=faculty_data.id).exists():
+        current_faculty_list = []
+        today = datetime.date.today() 
+        for fac in all_faculty_data:
+            try:
+                if fac.leaving_date and today < fac.leaving_date:
+                    current_faculty_list.append(fac)
+                if not fac.leaving_date:
+                    current_faculty_list.append(fac)
+                if fac.on_visit:
+                    current_faculty_list.remove(fac)
+            except Exception as error:
+                print(f"error: {error}")
+        for faculty_data in current_faculty_list:
+            # if faculty_data.google_scholar_profile_link and not PublicationPageFaculty.objects.filter(faculty_id=faculty_data.id).exists():
+            if faculty_data.google_scholar_profile_link:
                 print(f"------------------------fetching publications of {faculty_data} ----------------------------")
                 parsed_url = urlparse(faculty_data.google_scholar_profile_link)
                 query_params = parse_qs(parsed_url.query)
@@ -76,7 +107,7 @@ def updateGoogleScholarPublications():
                 result = scholarly.fill(author, sections=[])
                 publications_list=result['publications']
                 sorted_publications_list = sorted(publications_list, key=lambda pub: int(pub['bib']['pub_year']) if 'bib' in pub and 'pub_year' in pub['bib'] else 0, reverse=True)
-             
+                delete_publications_of_professor(faculty_data.id)
                 for publication in sorted_publications_list[:5]:
                 #     # print(publication)
                     # print(f"Publication Title: {publication['bib']['title']}")
@@ -91,6 +122,7 @@ def updateGoogleScholarPublications():
                     # citations=str(publication_details['num_citations'])
                     # add_publication(title,pub_year,faculty_data.id,abstract,download_link,pub_journal,citations)
                     add_publication_without_details(title,pub_year,faculty_data.id)
+                    # time.sleep(2)
                 # result=json.dumps(result).strip()
                 
                 # print(result2)
@@ -240,10 +272,9 @@ def delete_all_publications_of_faculty_with_google_scholar_link():
 print("------------------------------------------------NEW DATA------------------------------------------------")
 # checkGoogleScholarProfile()
 # delete_all_publications_of_faculty_with_google_scholar_link()
-# updateGoogleScholarPublications()
-print_of_all_publications_of_faculty_with_google_scholar_link()
+updateGoogleScholarPublications()
 # checkAllPublicationsWithFaculty()
 # delete_publications_of_professor(2121)
 print("------------------------------------------------NEW DATA------------------------------------------------")
 # print_publications_of_professor(2123)
-# checkProfessorId()
+# checking_currect_professors()
