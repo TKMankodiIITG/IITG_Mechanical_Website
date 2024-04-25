@@ -47,9 +47,8 @@
     list-style: circle !important;
 }
 .more-button{
-    color: #61a5c2;
-    font-size: 1.875rem2rem;
-    font-weight: 800;
+    color: #222546;
+    font-size: 1.175rem;
     text-decoration: none;
     text-align: right;
     padding: 0.5rem;
@@ -228,7 +227,14 @@
                     {% if forloop.counter < 6 %}
                     <div class="w3-container">
                         <li class="faclist">
-                            <h5 class=""><a href="{{ pub.url }}">{{ pub }}</a></h5>
+                            <h5 class="">
+                                {% if page.specific.google_scholar_profile_link%}
+                                <a target="blank" href="{{ pub.download_link }}">{{ pub }}</a>
+                                {% endif%}
+                                {% if not page.specific.google_scholar_profile_link%}
+                                <a href="{{ pub.url }}">{{ pub }}</a>
+                                {% endif%}
+                            </h5>
                         </li>
                         <hr>
                     </div>

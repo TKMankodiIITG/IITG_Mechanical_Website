@@ -1949,7 +1949,7 @@ class PublicationPage(Page):
     name = models.CharField(max_length=500)
     abstract = RichTextField(blank=True, null=True, features=CUSTOM_RICHTEXT)
     pub_type = models.CharField(max_length=2, choices=PUBLICATION_TYPES, default="0", null=True)
-    download_link = models.URLField(blank=True, max_length=100, null=True)
+    download_link = models.URLField(blank=True, max_length=300, null=True)
     pub_issue = models.CharField(max_length=100, null=True, blank=True)
     pub_year = models.IntegerField(default=timezone.now().year, null=True)
     pub_journal = models.CharField(max_length=300, blank=True, null=True)

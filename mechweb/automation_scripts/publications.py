@@ -95,6 +95,8 @@ def updateGoogleScholarPublications():
                     current_faculty_list.remove(fac)
             except Exception as error:
                 print(f"error: {error}")
+                
+                
         for faculty_data in current_faculty_list:
             # if faculty_data.google_scholar_profile_link and not PublicationPageFaculty.objects.filter(faculty_id=faculty_data.id).exists():
             if faculty_data.google_scholar_profile_link:
@@ -108,23 +110,28 @@ def updateGoogleScholarPublications():
                 publications_list=result['publications']
                 sorted_publications_list = sorted(publications_list, key=lambda pub: int(pub['bib']['pub_year']) if 'bib' in pub and 'pub_year' in pub['bib'] else 0, reverse=True)
                 delete_publications_of_professor(faculty_data.id)
+                user_id=result['scholar_id']
+                # print(sorted_publications_list)
                 for publication in sorted_publications_list[:5]:
-                #     # print(publication)
+                    # print(publication)
                     # print(f"Publication Title: {publication['bib']['title']}")
                     
                     title= publication['bib']['title']
+                    citation_id=publication["author_pub_id"]
+                    pub_url = f"https://scholar.google.co.in/citations?view_op=view_citation&user={user_id}&citation_for_view={citation_id}"
                     pub_year= publication['bib']['pub_year']
-                    # search_query = scholarly.search_pubs(title)
-                    # publication_details=next(search_query)
-                    # abstract=publication_details['bib']['abstract']
-                    # download_link=publication_details['pub_url']
-                    # pub_journal=publication_details['bib']['venue']
-                    # citations=str(publication_details['num_citations'])
-                    # add_publication(title,pub_year,faculty_data.id,abstract,download_link,pub_journal,citations)
-                    add_publication_without_details(title,pub_year,faculty_data.id)
+                    print(pub_url)
+                    # # search_query = scholarly.search_pubs(title)
+                    # # publication_details=next(search_query)
+                    # # abstract=publication_details['bib']['abstract']
+                    # # download_link=publication_details['pub_url']
+                    # # pub_journal=publication_details['bib']['venue']
+                    # # citations=str(publication_details['num_citations'])
+                    # # add_publication(title,pub_year,faculty_data.id,abstract,download_link,pub_journal,citations)
+                    add_publication_without_details(title,pub_year,faculty_data.id,pub_url)
                     # time.sleep(2)
                 # result=json.dumps(result).strip()
-                
+
                 # print(result2)
                 
 
@@ -132,7 +139,7 @@ def updateGoogleScholarPublications():
         # Handle other exceptions
         print(f"Error: {e}")
 
-def add_publication_without_details(title,pub_year,faculty_id):
+def add_publication_without_details(title,pub_year,faculty_id,pub_url):
     try:
         # Generate slug from the title
         slug = slugify(title)
@@ -142,6 +149,7 @@ def add_publication_without_details(title,pub_year,faculty_id):
             title=title,
             name=title,
             pub_type='2',
+            download_link=pub_url,
             pub_year=int(pub_year),
             slug=slug,
             depth=0 
