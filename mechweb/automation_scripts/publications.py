@@ -278,6 +278,7 @@ def delete_all_publications_of_faculty_with_google_scholar_link():
 
     
 print("------------------------------------------------NEW DATA------------------------------------------------")
+#updateGoogleScholarLinks()
 # checkGoogleScholarProfile()
 # delete_all_publications_of_faculty_with_google_scholar_link()
 updateGoogleScholarPublications()
