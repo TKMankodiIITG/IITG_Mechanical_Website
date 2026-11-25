@@ -12,3 +12,14 @@ secrets.json
 settings.json
 mechweb.code-workspace
 media/
+
+# Sensitive / generated files - never commit
+db.sqlite3
+*.sqlite3
+secrets.json
+*.save
+.DS_Store
+*.log
+*.bak
+extrasAD/datadump*.json
+extrasAD/dump*.json

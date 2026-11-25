@@ -9,6 +9,7 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
+from django.db.models import Q
 import csv
 from io import StringIO
 import requests
@@ -225,6 +226,16 @@ class MechHomePage(Page):
         new_events = get_new_events()
         top_awards = get_new_awards()
         # context['navlist'] = navlist
+        today = timezone.now().date()
+        context["faculty_count"] = FacultyPage.objects.filter(
+            Q(leaving_date__isnull=True) | Q(leaving_date__gt=today),
+            on_lien=False,
+            on_visit=False,
+            on_depute=False
+        ).count()
+        context["students_count"] = Academics.objects.first().get_descendants().type(Student).live().count
+        context["total_years"] = datetime.datetime.now().year - 1995
+        context["labs_count"] = ResearchLabPage.objects.all().count
         context["categories"] = categories
         context["new_events"] = new_events
         context["top_awards"] = top_awards
@@ -232,6 +243,7 @@ class MechHomePage(Page):
         context["news_announcments_page"] = NewsAnnouncementHomePage.objects.first
         context["events_home_page"] = EventHomePage.objects.first
         context["minutes_page"] = MinutesOfMeetingsHomePage.objects.first
+
         return context
 
     class Meta:

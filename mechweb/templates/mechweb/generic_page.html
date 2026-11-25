@@ -18,15 +18,83 @@
 </style>
 <div class="bg-light">
       <br>
-<h1 class="text-center text-warning"> {{page.title}}</h1>
+	<h1 class="text-center text-warning"> {{page.title}}</h1>
 <br>
-<div class="container card">
+	<div class="container card">
 <br>
-<div>
+	<div>
 {{page.body|richtext}}
-</div>
+	</div>
 <br>
+	</div>
+{% if request.path == "/mech/faculty-member-related/" %}
+<div class="container mt-4 p-3 card bg-white border">
+    <h4>Download Publications</h4>
+    <div class="row g-3 align-items-center">
+        <div class="col-auto">
+            <label for="from-month" class="col-form-label">From:</label>
+            <input type="month" id="from-month" class="form-control">
+        </div>
+        <div class="col-auto">
+            <label for="to-month" class="col-form-label">To:</label>
+            <input type="month" id="to-month" class="form-control">
+        </div>
+        <div class="col-auto">
+            <button id="btn-2-months" class="btn btn-outline-secondary mt-4">Last 2 Months</button>
+            <button id="btn-4-months" class="btn btn-outline-secondary mt-4">Last 4 Months</button>
+        </div>
+        <div class="col-auto">
+            <button id="download-btn" class="btn btn-primary mt-4">Download Publications</button>
+        </div>
+    </div>
 </div>
+
+<script>
+function getCurrentMonthYear() {
+    const now = new Date();
+    return now.toISOString().slice(0, 7); // format YYYY-MM
+}
+
+function setMaxMonth() {
+    const currentMonth = getCurrentMonthYear();
+    document.getElementById("to-month").max = currentMonth;
+    document.getElementById("from-month").max = currentMonth;
+}
+
+function setMonthRange(monthsBack) {
+    const now = new Date();
+
+    // Set "to" as the current month
+    const to = now.toISOString().slice(0, 7);
+
+    // Set "from" as N months back
+    const startMonth = new Date(now.getFullYear(), now.getMonth() - (monthsBack - 1), 1);
+    const from = startMonth.toISOString().slice(0, 7);
+
+    document.getElementById("from-month").value = from;
+    document.getElementById("to-month").value = to;
+}
+
+
+document.getElementById("download-btn").addEventListener("click", function () {
+    const fromMonth = document.getElementById("from-month").value;
+    const toMonth = document.getElementById("to-month").value;
+
+    if (!fromMonth || !toMonth) {
+        alert("Please select both months.");
+        return;
+    }
+    window.location.href = `/mech/download_excel/?from=${fromMonth}&to=${toMonth}`;
+});
+
+document.getElementById("btn-2-months").addEventListener("click", () => setMonthRange(2));
+document.getElementById("btn-4-months").addEventListener("click", () => setMonthRange(4));
+
+// Restrict to max current month on load
+setMaxMonth();
+</script>
+{% endif %}
+
 <br>
 </div>
 <br>
