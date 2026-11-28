@@ -158,6 +158,8 @@ FACULTY_DESIGNATION = (
     ("2", "Assistant Professor"),
     ("4", "Visiting Professor"),
     ("5", "Honorary Professor"),
+    ("6", "DST INSPIRE Fellow"),
+    ("7", "Ramanujan Fellow"),
 )
 
 FACULTY_AWARD_TYPES = (
